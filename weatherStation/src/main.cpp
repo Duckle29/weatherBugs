@@ -29,7 +29,7 @@ void loop()
 		for(uint8_t i=0; i<5; i++)
 		{
 			Serial.print(mac_arr[i], HEX);Serial.print(':');
-		}
+		
 		Serial.println(mac_arr[5], HEX);
 
   	Serial.print("  Temp: "); Serial.print(sensorData.temp); Serial.println(" °C");

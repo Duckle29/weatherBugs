@@ -2,3 +2,5 @@
 .piolibdeps
 .vscode
 credentials.h
+weatherStation/.gitignore
+weatherBug/.gitignore
