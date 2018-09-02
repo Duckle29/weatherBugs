@@ -7,6 +7,8 @@
  License: Apache License v2
 */
 #include <Arduino.h>
+#include <Wire.h>
+#include <ClosedCube_SHT31D.h>
 
 extern "C" 
 {
@@ -17,7 +19,7 @@ struct __attribute__((packed)) SENSOR_DATA
 {
   float temp;
   float humi;
-  float batV;
+  uint16_t batV;
 } sensorData;
 
 
@@ -25,10 +27,10 @@ uint8_t remoteMac[] = {0x0A, 0x00, 0x00, 0x00, 0x00, 0x01};
 
 #define WIFI_CHANNEL 1
 //#define SLEEP_SECS 15 * 60 // 15 minutes
-#define SLEEP_SECS 5  // 10 seconds
-#define SEND_TIMEOUT 100  // 100 milliseconds timeout 
+#define SLEEP_SECS 15*60   // 15 minutes
+#define SEND_TIMEOUT 300  // 100 milliseconds timeout 
 
-const float mv_per_adc = 8.465794769;
+const float mv_per_adc = 8.84;
 
 // Prototypes:
 void esp_send();
