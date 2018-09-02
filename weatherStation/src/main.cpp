@@ -25,6 +25,7 @@ void loop()
 				break;
 			case 'p':
 				print_package();
+				Serial.print("Count"); Serial.println(count);
 				Serial.print("Status: "); Serial.println(last_status);
 		}
 	}
