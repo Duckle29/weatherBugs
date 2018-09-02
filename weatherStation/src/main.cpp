@@ -32,6 +32,7 @@ void loop()
 
 	if(package_recieved)
 	{
+		count++;
 		package_recieved = false;
 		if(sensorData.humi >= 0)
 		{
@@ -74,7 +75,6 @@ void print_package()
 	{
 		return;
 	}
-		count++;
 		Serial.println(count);
 		
 		// Print MAC of bug
