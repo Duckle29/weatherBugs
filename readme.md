@@ -6,5 +6,5 @@ The project is not done yet, but here's the todo:
 
 - [x] Get communication with wunderground PWS working
 - [x] Get ESP-now communication between station and bugs
-- [ ] Get mode-switching between ESP-now station and wifi-connected station working (haven't tested it)
-- [ ] Get SHT31 sensor implemented (waiting for the sensor)
+- [x] Get mode-switching between ESP-now station and wifi-connected station working (haven't tested it)
+- [x] Get SHT31 sensor implemented
