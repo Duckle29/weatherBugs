@@ -1,6 +1,6 @@
 #include <main.h>
 
-// Initialize the library with your credentials, and start a new query
+// Initialize the library with your credentials, and start a new query.
 Wunderground wg(WG_ID, WG_PASS);
 
 void setup()
