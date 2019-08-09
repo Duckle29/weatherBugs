@@ -64,6 +64,7 @@ void loop()
 			Serial.print("  Typ: "); Serial.println(sensorData.humi);
 			Serial.print("  Err: "); Serial.println(sensorData.temp);
 		}
+		display_data();
 	}
 	sample_local();
 	delay(0);
@@ -92,12 +93,14 @@ void sample_local()
 			localSensorData.humi = res.rh;
 			display_data();
 		}
+		Serial.println(res.t);
 	}
 	delay(0);
 }
 
 void display_data() 
 {
+	display.clear();
   const int offset = 2;
   display.setTextAlignment(TEXT_ALIGN_LEFT);
   display.setFont(ArialMT_Plain_16);
@@ -121,6 +124,7 @@ void display_data()
     display.drawString(64, 32, "!");
     display.drawString(64, 32+24, "BAT");
   }
+	display.display();
 }
 
 void initVariant() 
