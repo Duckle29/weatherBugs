@@ -8,6 +8,9 @@ void setup()
 	Serial.begin(115200);
 	Serial.println("\nStarted");
 	Wire.begin();
+	sht31.begin(0x44);
+	display.init();
+  display.flipScreenVertically();
 
 	//Serial.println(wg.send_update());
 
@@ -34,15 +37,17 @@ void loop()
 	{
 		count++;
 		package_recieved = false;
+		return;
 		if(sensorData.humi >= 0)
 		{
+
 			wg.add_temp_c(sensorData.temp);
 			wg.add_relative_humidity(sensorData.humi);
 
 			print_package();
 
 			connect_wifi();				
-			last_status = wg.send_update();
+			//last_status = wg.send_update();
 			Serial.println(last_status); Serial.println();
 			init_esp_now();
 		}
@@ -60,13 +65,68 @@ void loop()
 			Serial.print("  Err: "); Serial.println(sensorData.temp);
 		}
 	}
+	sample_local();
 	delay(0);
+
+
+
+}
+
+/**
+ * Read the local sensor and update the display
+ **/
+void sample_local()
+{
+	if(millis()-last_sample > sample_time)
+	{
+		last_sample = millis();
+		SHT31D res = sht31.readTempAndHumidity(SHT3XD_REPEATABILITY_HIGH, SHT3XD_MODE_POLLING, 200);
+		if(res.error != SHT3XD_NO_ERROR)
+		{
+			localSensorData.temp = res.error;
+			localSensorData.humi = -2;
+		}
+		else
+		{
+			localSensorData.temp = res.t;
+			localSensorData.humi = res.rh;
+			display_data();
+		}
+	}
+	delay(0);
+}
+
+void display_data() 
+{
+  const int offset = 2;
+  display.setTextAlignment(TEXT_ALIGN_LEFT);
+  display.setFont(ArialMT_Plain_16);
+  display.drawString(0, 0, "  IN");
+  display.drawString(0, 16 - offset, String(localSensorData.temp) + String("°C") );
+  display.drawString(0, 32 - offset*2, String(localSensorData.humi) + String("%"));
+
+  display.setTextAlignment(TEXT_ALIGN_RIGHT);
+  display.drawString(128, 0, "OUT  ");
+  display.drawString(128, 16 - offset, String(sensorData.temp) + String("°C"));
+  display.drawString(128, 32 - offset*2, String(sensorData.humi) + String("%"));
+
+  display.setTextAlignment(TEXT_ALIGN_CENTER);
+  display.setFont(ArialMT_Plain_10);
+  display.drawString(64, 0, String(sensorData.batV) + "mv");
+
+  if(sensorData.batV < 3200)
+  {
+    display.setTextAlignment(TEXT_ALIGN_CENTER_BOTH);
+    display.setFont(ArialMT_Plain_24);
+    display.drawString(64, 32, "!");
+    display.drawString(64, 32+24, "BAT");
+  }
 }
 
 void initVariant() 
 {
-  WiFi.mode(WIFI_AP);
-  wifi_set_macaddr(SOFTAP_IF, &mac[0]);
+	WiFi.mode(WIFI_AP);
+	wifi_set_macaddr(SOFTAP_IF, &mac[0]);
 }
 
 void print_package()
@@ -103,8 +163,8 @@ void init_esp_now()
 		ESP.restart();
 	}
 	Serial.println("Listening for ESP-NOW packets");
-  	esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
-  	esp_now_register_recv_cb(recieve_callback);
+		esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
+		esp_now_register_recv_cb(recieve_callback);
 }
 
 void recieve_callback(uint8_t *mac, uint8_t *data, uint8_t len)
