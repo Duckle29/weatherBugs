@@ -1,5 +1,4 @@
-.pioenvs
-.piolibdeps
+.pio*
 .vscode
 credentials.h
 weatherStation/.gitignore

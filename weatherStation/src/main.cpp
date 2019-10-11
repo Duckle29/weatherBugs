@@ -10,9 +10,13 @@ void setup()
 	Wire.begin();
 	sht31.begin(0x44);
 	display.init();
-  display.flipScreenVertically();
+	display.flipScreenVertically();
 
 	//Serial.println(wg.send_update());
+
+	connect_wifi();
+	update_ntp();
+	get_time();
 
 	init_esp_now();
 }
@@ -37,18 +41,21 @@ void loop()
 	{
 		count++;
 		package_recieved = false;
-		return;
 		if(sensorData.humi >= 0)
 		{
-
 			wg.add_temp_c(sensorData.temp);
 			wg.add_relative_humidity(sensorData.humi);
 
 			print_package();
 
-			connect_wifi();				
+			connect_wifi();
+			update_ntp();
+			get_time();
+			
+			last_ntp_packet_ms = millis();
 			//last_status = wg.send_update();
 			Serial.println(last_status); Serial.println();
+			display_data();
 			init_esp_now();
 		}
 		else
@@ -64,13 +71,43 @@ void loop()
 			Serial.print("  Typ: "); Serial.println(sensorData.humi);
 			Serial.print("  Err: "); Serial.println(sensorData.temp);
 		}
-		display_data();
 	}
 	sample_local();
-	delay(0);
+	delay(10);
+}
 
+void update_ntp()
+{
+	configTime(timezone * 3600, 0, NTP_SERVERS);
+	delay(500);
+	uint8_t cnt = 0;
+	while(!time(nullptr))
+	{
+		cnt++;
+		if(cnt%5 == 0)
+		{
+			Serial.print("#");
+		}
+		delay(100);
+	}
+}
 
+void get_time()
+{
+	char *dstAbbrev;
+	time_t t = dstAdjusted.time(&dstAbbrev);
+	
+	timeinfo = localtime(&t);
+}
 
+String get_hour_pad()
+{
+	return (timeinfo->tm_hour < 10) ? "0" + String(timeinfo->tm_hour) : String(timeinfo->tm_hour);
+}
+
+String get_minute_pad()
+{
+	return (timeinfo->tm_min < 10) ? "0" + String(timeinfo->tm_min) : String(timeinfo->tm_min);
 }
 
 /**
@@ -101,29 +138,35 @@ void sample_local()
 void display_data() 
 {
 	display.clear();
-  const int offset = 2;
-  display.setTextAlignment(TEXT_ALIGN_LEFT);
-  display.setFont(ArialMT_Plain_16);
-  display.drawString(0, 0, "  IN");
-  display.drawString(0, 16 - offset, String(localSensorData.temp) + String("°C") );
-  display.drawString(0, 32 - offset*2, String(localSensorData.humi) + String("%"));
+	const int offset = 2;
+	display.setTextAlignment(TEXT_ALIGN_LEFT);
+	display.setFont(ArialMT_Plain_16);
+	display.drawString(0, 0, "  IN");
+	display.drawString(0, 16 - offset, String(localSensorData.temp) + String("°C") );
+	display.drawString(0, 32 - offset*2, String(localSensorData.humi) + String("%"));
 
-  display.setTextAlignment(TEXT_ALIGN_RIGHT);
-  display.drawString(128, 0, "OUT  ");
-  display.drawString(128, 16 - offset, String(sensorData.temp) + String("°C"));
-  display.drawString(128, 32 - offset*2, String(sensorData.humi) + String("%"));
+	display.setTextAlignment(TEXT_ALIGN_RIGHT);
+	display.drawString(128, 0, "OUT  ");
+	display.drawString(128, 16 - offset, String(sensorData.temp) + String("°C"));
+	display.drawString(128, 32 - offset*2, String(sensorData.humi) + String("%"));
 
-  display.setTextAlignment(TEXT_ALIGN_CENTER);
-  display.setFont(ArialMT_Plain_10);
-  display.drawString(64, 0, String(sensorData.batV) + "mv");
+	display.setTextAlignment(TEXT_ALIGN_CENTER);
+	display.setFont(ArialMT_Plain_10);
+	display.drawString(64, 0, String(sensorData.batV) + "mv");
 
-  if(sensorData.batV < 3200)
-  {
-    display.setTextAlignment(TEXT_ALIGN_CENTER_BOTH);
-    display.setFont(ArialMT_Plain_24);
-    display.drawString(64, 32, "!");
-    display.drawString(64, 32+24, "BAT");
-  }
+	display.setTextAlignment(TEXT_ALIGN_LEFT);
+	display.setFont(ArialMT_Plain_10);
+	display.drawString(0, 48, get_hour_pad() + ':' + get_minute_pad());
+	display.setTextAlignment(TEXT_ALIGN_RIGHT);
+	display.drawString(128, 48, String((millis() - last_ntp_packet_ms)/1000/60) + "min");
+
+	if(sensorData.batV < 3200)
+	{
+		display.setTextAlignment(TEXT_ALIGN_CENTER_BOTH);
+		display.setFont(ArialMT_Plain_24);
+		display.drawString(64, 32, "!");
+		display.drawString(64, 32+24, "BAT");
+	}
 	display.display();
 }
 
@@ -191,6 +234,7 @@ int8_t connect_wifi()
 
 	// Wait for connection
 	uint32_t start = millis();
+	uint8_t cnt = 0;
 	while (WiFi.status() != WL_CONNECTED) 
 	{
 		if(millis()-start > wifi_timeout)
@@ -199,9 +243,15 @@ int8_t connect_wifi()
 			WiFi.mode(WIFI_OFF);
 			return -10; // Timeout
 		}
-		delay(500);
-		Serial.print(".");
+		delay(100);
+		
+		cnt++;
+		if(cnt%5 == 0)
+		{
+			Serial.print(".");
+		}
 	}
 	Serial.print("Connected to: "); Serial.println(WiFi.SSID());
+
 	return 0;
 }
