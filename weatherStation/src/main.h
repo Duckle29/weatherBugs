@@ -1,12 +1,16 @@
 #pragma once
 
 #include <Arduino.h>
-#include <ESP_Wunderground_PWS.h>
+
 #include <ESP8266WiFi.h>
+#include <time.h>
+#include <simpleDSTadjust.h>
+
+#include <ESP_Wunderground_PWS.h>
+
 #include <Wire.h>
 #include <ClosedCube_SHT31D.h>
 #include "SSD1306Wire.h"
-
 
 #include "credentials.h" 
 
@@ -18,8 +22,16 @@ extern "C"
 
 const bool wg_enable = false;
 
+const int timezone = 1; // UTC standard time timezone
+#define NTP_SERVERS "us.pool.ntp.org", "pool.ntp.org", "time.nist.gov"
+struct dstRule StartRule = {"CEST", Last, Sun, Mar, 2, 3600};    // Daylight time = UTC/GMT +2 hours
+struct dstRule EndRule = {"CET", Last, Sun, Oct, 3, 0};          // Standard time = UTC/GMT +1 hour
+
+simpleDSTadjust dstAdjusted(StartRule, EndRule);
+
 ClosedCube_SHT31D sht31;
 SSD1306Wire  display(0x3C, D2, D1);
+
 
 const uint16_t wifi_timeout = 30000;
 
@@ -35,6 +47,9 @@ struct __attribute__((packed)) SENSOR_DATA
 
 SENSOR_DATA sensorData;
 SENSOR_DATA localSensorData;
+
+unsigned long last_ntp_packet_ms = 0;
+struct tm *timeinfo;
 
 uint8_t mac_arr[6];
 uint16_t last_status = 0;
@@ -53,3 +68,7 @@ void init_esp_now();
 void print_package();
 void sample_local();
 void display_data();
+void update_ntp();
+void get_time();
+String get_hour_pad();
+String get_minute_pad();
