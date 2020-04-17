@@ -10,10 +10,9 @@ void setup()
 	Wire.begin();
 	sht31.begin(0x44);
 	display.init();
-  display.flipScreenVertically();
-
-	//Serial.println(wg.send_update());
-
+    display.flipScreenVertically();
+	
+	Serial.println(WiFi.macAddress());
 	init_esp_now();
 }
 
@@ -37,22 +36,23 @@ void loop()
 	{
 		count++;
 		package_recieved = false;
-		return;
-		if(sensorData.humi >= 0)
+		if(wg_enable)
 		{
+			if(sensorData.humi >= 0)
+			{
 
 			wg.add_temp_c(sensorData.temp);
 			wg.add_relative_humidity(sensorData.humi);
 
 			print_package();
 
-			connect_wifi();				
+			//connect_wifi();				
 			//last_status = wg.send_update();
 			Serial.println(last_status); Serial.println();
 			init_esp_now();
-		}
-		else
-		{
+			}
+			else
+			{
 			Serial.print("Issues with sensor: ");
 
 			for(uint8_t i=0; i<5; i++)
@@ -63,6 +63,7 @@ void loop()
 
 			Serial.print("  Typ: "); Serial.println(sensorData.humi);
 			Serial.print("  Err: "); Serial.println(sensorData.temp);
+			}
 		}
 		display_data();
 	}
@@ -127,11 +128,12 @@ void display_data()
 	display.display();
 }
 
-void initVariant() 
-{
-	WiFi.mode(WIFI_AP);
-	wifi_set_macaddr(SOFTAP_IF, &mac[0]);
-}
+// Setting the MAC address seems to have broken, so using actual unique MAC of the station
+// void initVariant() 
+// {
+// 	WiFi.mode(WIFI_AP);
+// 	wifi_set_macaddr(SOFTAP_IF, &mac[0]);
+// }
 
 void print_package()
 {
@@ -160,14 +162,14 @@ void init_esp_now()
 {
 	WiFi.mode(WIFI_OFF);
 	delay(100);
-	WiFi.mode(WIFI_AP);	
+	WiFi.mode(WIFI_STA);	
 	if(esp_now_init() != 0) 
 	{
 		Serial.println("*** ESP_Now init failed");
 		ESP.restart();
 	}
 	Serial.println("Listening for ESP-NOW packets");
-		esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
+		esp_now_set_self_role(ESP_NOW_ROLE_SLAVE);
 		esp_now_register_recv_cb(recieve_callback);
 }
 

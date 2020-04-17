@@ -16,11 +16,15 @@ extern "C"
   #include <user_interface.h>
 }
 
+const bool wg_enable = false;
+
 ClosedCube_SHT31D sht31;
 SSD1306Wire  display(0x3C, D2, D1);
 
 const uint16_t wifi_timeout = 30000;
-uint8_t mac[] = {0x0A, 0x00, 0x00, 0x00, 0x00, 0x01};
+
+// Setting the MAC address seems to have broken, so using actual unique MAC of the station
+// uint8_t mac[] = {0x0A, 0x00, 0x00, 0x00, 0x00, 0x01};
 
 struct __attribute__((packed)) SENSOR_DATA 
 {

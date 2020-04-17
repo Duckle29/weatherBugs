@@ -6,8 +6,6 @@
 
 ClosedCube_SHT31D sht31;
 
-bool SERIAL_ENABLED = false;
-
 #define SPRINT(x) if(SERIAL_ENABLED){Serial.print(x);}
 #define SPRINTLN(x) if(SERIAL_ENABLED){Serial.println(x);}
 #define SPRINTF(x, args...) if(SERIAL_ENABLED){Serial.printf(x, args);}
@@ -15,6 +13,9 @@ bool SERIAL_ENABLED = false;
 void setup() 
 {
   Serial.begin(115200); SPRINTLN("\nBug woken");
+
+  WiFi.mode(WIFI_STA);
+
   sensorData.temp = -128;
   sensorData.humi = -1;
   
@@ -34,8 +35,11 @@ void setup()
     sensorData.humi = res.rh;
   }
   delay(0);
-  SPRINT("Got humi: "); 
-  SPRINTLN(sensorData.humi);
+  SPRINT("Got: "); 
+  SPRINT(sensorData.humi);
+  SPRINT("% "); 
+  SPRINT(sensorData.temp);
+  SPRINTLN("C");
 
   if (esp_now_init() != 0) 
   {
@@ -47,7 +51,7 @@ void setup()
   esp_now_add_peer(remoteMac, ESP_NOW_ROLE_SLAVE, WIFI_CHANNEL, NULL, 0);
   esp_now_register_send_cb(send_callback);
 
-  sensorData.batV = analogRead(A0) * mv_per_adc;
+  sensorData.batV = float(analogRead(A0)) * mv_per_adc;
   SPRINT("batV: "); SPRINTLN(sensorData.batV);
   
   esp_send();
