@@ -5,6 +5,7 @@ Wunderground wg(WG_ID, WG_PASS);
 
 void setup()
 {
+	WiFi.hostname("weatherStation");
 	Serial.begin(115200);
 	Serial.println("\nStarted");
 	Wire.begin();
@@ -13,10 +14,12 @@ void setup()
     display.flipScreenVertically();
 	
 	Serial.println(WiFi.macAddress());
-	
-	connect_wifi();
-	update_ntp();
-	get_time();
+
+	if(connect_wifi() == 0)
+	{
+		update_ntp();
+		get_time();
+	}
 
 	init_esp_now();
 }
@@ -48,21 +51,24 @@ void loop()
 
 			print_package();
 
-			connect_wifi();
-			update_ntp();
-			get_time();
-			
-			last_ntp_packet_ms = millis();
-			if(wg_enable)
+			if( connect_wifi() == 0)
 			{
-				last_status = wg.send_update();
-				Serial.println(last_status); Serial.println();
+				update_ntp();
+				get_time();
+				last_ntp_packet_ms = millis();
+				if(wg_enable)
+				{
+					last_status = wg.send_update();
+					Serial.println(last_status); Serial.println();
+				}
 			}
+			
+			
 			display_data();
 			init_esp_now();
-			}
-			else
-			{
+		}
+		else
+		{
 			Serial.print("Issues with sensor: ");
 
 			for(uint8_t i=0; i<5; i++)
@@ -75,7 +81,6 @@ void loop()
 			Serial.print("  Err: "); Serial.println(sensorData.temp);
 			}
 		}
-	}
 	sample_local();
 	delay(10);
 }
@@ -106,11 +111,19 @@ void get_time()
 
 String get_hour_pad()
 {
+	if(WiFi.status() != WL_CONNECTED)
+	{
+		return String("00");
+	}
 	return (timeinfo->tm_hour < 10) ? "0" + String(timeinfo->tm_hour) : String(timeinfo->tm_hour);
 }
 
 String get_minute_pad()
 {
+	if(WiFi.status() != WL_CONNECTED)
+	{
+		return String("00");
+	}
 	return (timeinfo->tm_min < 10) ? "0" + String(timeinfo->tm_min) : String(timeinfo->tm_min);
 }
 
@@ -208,14 +221,15 @@ void init_esp_now()
 {
 	WiFi.mode(WIFI_OFF);
 	delay(100);
-	WiFi.mode(WIFI_STA);	
+	WiFi.mode(WIFI_STA);
+	//Serial.println(wifi_get_channel());
 	if(esp_now_init() != 0) 
 	{
 		Serial.println("*** ESP_Now init failed");
 		ESP.restart();
 	}
 	Serial.println("Listening for ESP-NOW packets");
-		esp_now_set_self_role(ESP_NOW_ROLE_SLAVE);
+		esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
 		esp_now_register_recv_cb(recieve_callback);
 }
 
@@ -231,10 +245,10 @@ int8_t connect_wifi()
 {
 	esp_now_deinit();
 
-	Serial.print("Connecting");
+	Serial.print(String("Connecting to ") + String(ssid));
 	WiFi.mode(WIFI_OFF);    //Prevents reconnection issue (taking too long to connect)
 	delay(500);
-	WiFi.mode(WIFI_STA);    //This line hides the viewing of ESP as wifi hotspot
+	WiFi.mode(WIFI_STA);    
 	WiFi.begin(ssid, password);
 
 	// Wait for connection
@@ -244,7 +258,8 @@ int8_t connect_wifi()
 	{
 		if(millis()-start > wifi_timeout)
 		{
-			Serial.print("Connecting timed out");
+			Serial.println("Connecting timed out");
+			WiFi.disconnect();
 			WiFi.mode(WIFI_OFF);
 			return -10; // Timeout
 		}
