@@ -14,7 +14,9 @@ void setup()
 {
   Serial.begin(115200); SPRINTLN("\nBug woken");
 
-  WiFi.mode(WIFI_STA);
+  //WiFi.mode(WIFI_STA);
+  wifi_set_channel(WIFI_CHANNEL);
+  SPRINT(wifi_get_channel());
 
   sensorData.temp = -128;
   sensorData.humi = -1;
@@ -48,7 +50,7 @@ void setup()
   }
 
   esp_now_set_self_role(ESP_NOW_ROLE_CONTROLLER);
-  esp_now_add_peer(remoteMac, ESP_NOW_ROLE_SLAVE, WIFI_CHANNEL, NULL, 0);
+  esp_now_add_peer(remoteMac, ESP_NOW_ROLE_COMBO, WIFI_CHANNEL, NULL, 0);
   esp_now_register_send_cb(send_callback);
 
   sensorData.batV = float(analogRead(A0)) * mv_per_adc;
@@ -71,7 +73,7 @@ void esp_send()
   SPRINTLN("sending data");
   uint8_t bs[sizeof(sensorData)];
   memcpy(bs, &sensorData, sizeof(sensorData));
-  esp_now_send(NULL, bs, sizeof(sensorData)); // NULL means send to all peerse
+  esp_now_send(NULL, bs, sizeof(sensorData)); // NULL means send to all peers
 }
 
 void send_callback(uint8_t mac[], uint8_t sendStatus)

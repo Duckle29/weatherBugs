@@ -11,12 +11,12 @@
 #include <Wire.h>
 #include <ClosedCube_SHT31D.h>
 
-// bool SERIAL_ENABLED = false;
-bool SERIAL_ENABLED = true;
+bool SERIAL_ENABLED = false;
 
 extern "C" 
 {
   #include <espnow.h>
+  #include <user_interface.h>
 }
 
 struct __attribute__((packed)) SENSOR_DATA 
@@ -28,13 +28,12 @@ struct __attribute__((packed)) SENSOR_DATA
 
 uint8_t remoteMac[] = {0x3C, 0x71, 0xBF, 0x32, 0xC5, 0xDD};
 
-#define WIFI_CHANNEL 1
-//#define SLEEP_SECS 15 * 60 // 15 minutes
+#define WIFI_CHANNEL 10
 #define SLEEP_SECS 15*60   // 15 minutes
 #define SEND_TIMEOUT 300  // 100 milliseconds timeout 
 
 // 1v max on ADC. 10 bit ADC, voltage divider with 390k and 100k R1,R2
-const float cal_factor = 1.0;
+const float cal_factor = 0.97464622641;
 const float mv_per_adc = ((1000.0 / 1024.0) / (10.0/(39.0+10.0))) * cal_factor;
 
 // Prototypes:
