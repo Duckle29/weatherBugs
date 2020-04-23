@@ -5,7 +5,7 @@ Wunderground wg(WG_ID, WG_PASS);
 
 void setup()
 {
-	WiFi.hostname("weatherStation");
+	WiFi.hostname("Spare-display");
 	Serial.begin(115200);
 	Serial.println("\nStarted");
 	Wire.begin();
@@ -44,12 +44,20 @@ void loop()
 	{
 		count++;
 		package_recieved = false;
+
+		data.temp[0] = localSensorData.temp;
+		data.temp[1] = sensorData.temp;
+		data.humi[0] = localSensorData.humi;
+		data.humi[1] = sensorData.humi;
+		data.batV = sensorData.batV;
+
 		if(sensorData.humi >= 0)
 		{
 			wg.add_temp_c(sensorData.temp);
 			wg.add_relative_humidity(sensorData.humi);
 
 			print_package();
+			esp_send();
 
 			if( connect_wifi() == 0)
 			{
@@ -105,6 +113,7 @@ void get_time()
 {
 	char *dstAbbrev;
 	time_t t = dstAdjusted.time(&dstAbbrev);
+	data.time = t;
 	
 	timeinfo = localtime(&t);
 }
@@ -229,8 +238,10 @@ void init_esp_now()
 		ESP.restart();
 	}
 	Serial.println("Listening for ESP-NOW packets");
-		esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
-		esp_now_register_recv_cb(recieve_callback);
+	esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
+	esp_now_add_peer(remoteMac, ESP_NOW_ROLE_COMBO, WIFI_CHANNEL, NULL, 0);
+	esp_now_register_recv_cb(recieve_callback);
+	esp_now_register_send_cb(send_callback);
 }
 
 void recieve_callback(uint8_t *mac, uint8_t *data, uint8_t len)
@@ -239,6 +250,19 @@ void recieve_callback(uint8_t *mac, uint8_t *data, uint8_t len)
 	memcpy(mac_arr, mac, 6);
 
 	package_recieved = true;
+}
+
+void send_callback(uint8_t mac[], uint8_t sendStatus)
+{
+  Serial.printf("sendcb: send done, status: %i\n", sendStatus);  
+}
+
+void esp_send()
+{
+   Serial.println("sending data");
+   uint8_t bs[sizeof(data)];
+   memcpy(bs, &data, sizeof(data));
+   esp_now_send(NULL, bs, sizeof(data)); // NULL means send to all peers
 }
 
 int8_t connect_wifi()

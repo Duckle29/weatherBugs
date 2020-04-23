@@ -20,6 +20,8 @@ extern "C"
   #include <user_interface.h>
 }
 
+#define WIFI_CHANNEL 10
+
 const bool wg_enable = false;
 
 const int timezone = 1; // UTC standard time timezone
@@ -45,8 +47,17 @@ struct __attribute__((packed)) SENSOR_DATA
   uint16_t batV;
 };
 
+struct __attribute__((packed)) REMOTE_DATA 
+{
+  float temp[2];
+  float humi[2];
+  uint16_t batV;
+  time_t time;
+};
+
 SENSOR_DATA sensorData;
 SENSOR_DATA localSensorData;
+REMOTE_DATA data;
 
 unsigned long last_ntp_packet_ms = 0;
 struct tm *timeinfo;
@@ -59,12 +70,16 @@ uint32_t last_sample = 0 - sample_time; // Sample
 
 bool esp_now_info_sent = false;
 bool package_recieved = false;
+uint8_t remoteMac[] = {0xB4, 0xE6, 0x2D, 0x53, 0xD5, 0xBF};
+
 
 // prototypes
 
 void recieve_callback(uint8_t *mac, uint8_t *data, uint8_t len);
+void send_callback(uint8_t mac[], uint8_t sendStatus);
 int8_t connect_wifi();
 void init_esp_now();
+void esp_send();
 void print_package();
 void sample_local();
 void display_data();
